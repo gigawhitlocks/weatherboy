@@ -7,20 +7,20 @@ import (
 )
 
 func main() {
-	ln, err := net.Listen("udp", ":50222")
+	ln, err := net.ListenUDP("udp", &net.UDPAddr{Port: 50222})
 	if err != nil {
 		fmt.Printf("opening socket: %s", err)
 		os.Exit(1)
 	}
 
+	outb := make([]byte, 128)
 	for {
-
-		conn, err := ln.Accept()
+		_, err := ln.Read(outb)
 		if err != nil {
 			fmt.Printf("accepting cxn: %s", err)
 		}
 
-		fmt.Printf("Got %s", conn)
+		fmt.Printf("%s\n", string(outb))
 
 	}
 }
