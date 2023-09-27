@@ -33,14 +33,6 @@ func RapidWind(outb []byte) string {
 		r.Observation[2])
 }
 
-func ObservationAir(outb []byte) string {
-	return fmt.Sprintf("ObservationAir %s", string(outb))
-}
-
-func ObservationSky(outb []byte) string {
-	return fmt.Sprintf("ObservationSky %s", string(outb))
-}
-
 func ObservationTempest(outb []byte) string {
 	type Obs struct {
 		Observation [][17]any `json:"obs"`
@@ -123,10 +115,6 @@ func main() {
 			outs = LightningStrikeEvent(outb)
 		case "rapid_wind":
 			outs = RapidWind(outb)
-		case "obs_air":
-			outs = ObservationAir(outb)
-		case "obs_sky":
-			outs = ObservationSky(outb)
 		case "obs_st":
 			outs = ObservationTempest(outb)
 		case "device_status":
