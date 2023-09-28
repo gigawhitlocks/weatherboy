@@ -1,24 +1,27 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"net"
 	"os"
+	"text/template"
 )
 
 type Message struct {
 	Type string `json:"type"`
 }
 
-func RainStartEvent(b []byte) string {
+func ParseRainStartEvent(b []byte) string {
 	return fmt.Sprintf("RainStartEvent %s", string(b))
 }
 
-func LightningStrikeEvent(outb []byte) string {
+func ParseLightningStrikeEvent(outb []byte) string {
 	return fmt.Sprintf("LightningStrikeEvent %s", string(outb))
 }
-func RapidWind(outb []byte) string {
+
+func ParseRapidWind(outb []byte) string {
 	type RapidWindMsg struct {
 		Observation [3]any `json:"ob"`
 	}
@@ -33,56 +36,108 @@ func RapidWind(outb []byte) string {
 		r.Observation[2])
 }
 
-func ObservationTempest(outb []byte) string {
+func ParseObservationAir(outb []byte) string {
+	return fmt.Sprintf("ObservationAir %s", string(outb))
+}
+
+func ParseObservationSky(outb []byte) string {
+	return fmt.Sprintf("ObservationSky %s", string(outb))
+}
+
+type RapidWind struct {
+	Time int64
+}
+
+type Observation struct {
+	Time                 int64
+	WindLull             float64
+	WindAvg              float64
+	WindGust             float64
+	WindDirection        int64
+	WindSampleInterval   int64
+	StationPressure      float64
+	AirTemperature       float64
+	RelativeHumidity     float64
+	Illuminance          float64
+	UV                   float64
+	SolarRadiation       float64
+	RainPrevMin          float64
+	PrecipType           int64
+	LightningAvgDistance float64
+	LightningCount       int64
+	Battery              float64
+	ReportInterval       int64
+}
+
+func ParseObservation(outb []byte) (*Observation, error) {
 	type Obs struct {
-		Observation [][17]any `json:"obs"`
+		Observation [][18]any `json:"obs"`
 	}
 	o := new(Obs)
 	err := json.Unmarshal(outb, &o)
 	if err != nil {
-		return fmt.Sprintf("ERROR %s", err)
+		return nil, fmt.Errorf("ERROR %w", err)
 	}
 	r := o.Observation[0]
-
-	return fmt.Sprintf(`
-	Time Epoch %d s
-	Wind Lull %d m/s
-	Wind Avg %d m/s
-	Wind Direction	%d Degrees
-	Wind Sample Interval %d	seconds
-	Station Pressure	MB
-	Air Temperature	C
-	Relative Humidity	%0.1f
-	Illuminance	%d Lux
-	UV	Index %d
-	Solar Radiation	%d W/m^2
-	Rain amount over previous minute	%d mm
-	Precipitation Type	0 = none, 1 = rain, 2 = hail, 3 = rain + hail (experimental)
-	Lightning Strike Avg Distance	km
-	Lightning Strike Count	
-	Battery	Volts
-	Report Interval	Minutes
-	`, int(r[0]),
-	int(r[1]),
-	int(r[2]),
-	int(r[5]),
-	int(r[6]),
-	int(r[7]),
-	int(r[8]),
-	int(r[9]),
-	int(r[13]),
-	int(r[14]),
-	int(r[15]),
-	int(r[16]),
-	int(r[17]))
+	return &Observation{
+		Time:                 r[0].(int64),
+		WindLull:             r[1].(float64),
+		WindAvg:              r[2].(float64),
+		WindGust:             r[3].(float64),
+		WindDirection:        r[4].(int64),
+		WindSampleInterval:   r[5].(int64),
+		StationPressure:      r[6].(float64),
+		AirTemperature:       r[7].(float64),
+		RelativeHumidity:     r[8].(float64),
+		Illuminance:          r[9].(float64),
+		UV:                   r[10].(float64),
+		SolarRadiation:       r[11].(float64),
+		RainPrevMin:          r[12].(float64),
+		PrecipType:           r[13].(int64),
+		LightningAvgDistance: r[14].(float64),
+		LightningCount:       r[15].(int64),
+		Battery:              r[16].(float64),
+		ReportInterval:       r[17].(int64),
+	}, nil
 }
 
-func DeviceStatus(outb []byte) string {
-	return fmt.Sprintf("DeviceStatus %s", string(outb))
+func (o *Observation) String() string {
+	const observation = `
+Time Epoch {{ .Time }}s
+Wind Lull {{.WindLull}} m/s
+Wind Avg {{ .WindAvg }} m/s
+Wind Gust {{ .WindGust }} m/s
+Wind Direction	{{ .WindDirection }} Degrees
+Wind Sample Interval {{ .WindSampleInterval }}s
+Station Pressure {{ .StationPressure }}
+Air Temperature	{{ .AirTemperature }} C
+Relative Humidity	{{ .RelativeHumidity }}%
+Illuminance	{{ .Illuminance }} Lux
+UV	Index {{ .UV }}
+Solar Radiation	{{ .SolarRadiation }} W/m^2
+Rain amount over previous minute {{ .RainPrevMin }}mm
+Precipitation Type {{.PrecipType}}	0 = none, 1 = rain, 2 = hail, 3 = rain + hail (experimental)
+Lightning Strike Avg Distance	{{ .LightningAvgDistance }}km
+Lightning Strike Count	{{ .LightningCount }}
+Battery	Volts {{ .Battery }}V
+Report Interval	{{ .ReportInterval }} Minutes
+`
+
+	t := template.Must(template.New("observation").Parse(observation))
+	b := new(bytes.Buffer)
+	err := t.Execute(b, o)
+	if err != nil {
+		return fmt.Sprintf("ERROR (output) %s", err)
+	}
+	return b.String()
 }
 
-func HubStatus(outb []byte) string {
-	return fmt.Sprintf("HubStatus %s", string(outb))
+func ParseDeviceStatus(outb []byte) string {
+	return fmt.Sprintf("DeviceStatus")
+}
+
+func ParseHubStatus(outb []byte) string {
+	return fmt.Sprintf("HubStatus")
 }
 
 func main() {
@@ -110,17 +165,22 @@ func main() {
 		var outs string
 		switch messageType := encodedMessageType.Type; messageType {
 		case "evt_precip":
-			outs = RainStartEvent(outb)
+			outs = ParseRainStartEvent(outb)
 		case "evt_strike":
-			outs = LightningStrikeEvent(outb)
+			outs = ParseLightningStrikeEvent(outb)
 		case "rapid_wind":
-			outs = RapidWind(outb)
+			outs = ParseRapidWind(outb)
 		case "obs_st":
-			outs = ObservationTempest(outb)
+			o, err := ParseObservation(outb)
+			if err != nil {
+				fmt.Printf("error parsing observation: %s", err)
+				continue
+			}
+			outs = o.String()
 		case "device_status":
-			outs = DeviceStatus(outb)
+			outs = ParseDeviceStatus(outb)
 		case "hub_status":
-			outs = HubStatus(outb)
+			outs = ParseHubStatus(outb)
 		default:
 			fmt.Printf("UNKNOWN MESSAGE TYPE %s", string(outb))
 		}
