@@ -49,12 +49,12 @@ type RapidWind struct {
 }
 
 type Observation struct {
-	Time                 int64
+	Time                 float64
 	WindLull             float64
 	WindAvg              float64
 	WindGust             float64
-	WindDirection        int64
-	WindSampleInterval   int64
+	WindDirection        float64
+	WindSampleInterval   float64
 	StationPressure      float64
 	AirTemperature       float64
 	RelativeHumidity     float64
@@ -62,11 +62,11 @@ type Observation struct {
 	UV                   float64
 	SolarRadiation       float64
 	RainPrevMin          float64
-	PrecipType           int64
+	PrecipType           float64
 	LightningAvgDistance float64
-	LightningCount       int64
+	LightningCount       float64
 	Battery              float64
-	ReportInterval       int64
+	ReportInterval       float64
 }
 
 func ParseObservation(outb []byte) (*Observation, error) {
@@ -80,12 +80,12 @@ func ParseObservation(outb []byte) (*Observation, error) {
 	}
 	r := o.Observation[0]
 	return &Observation{
-		Time:                 r[0].(int64),
+		Time:                 r[0].(float64),
 		WindLull:             r[1].(float64),
 		WindAvg:              r[2].(float64),
 		WindGust:             r[3].(float64),
-		WindDirection:        r[4].(int64),
-		WindSampleInterval:   r[5].(int64),
+		WindDirection:        r[4].(float64),
+		WindSampleInterval:   r[5].(float64),
 		StationPressure:      r[6].(float64),
 		AirTemperature:       r[7].(float64),
 		RelativeHumidity:     r[8].(float64),
@@ -93,11 +93,11 @@ func ParseObservation(outb []byte) (*Observation, error) {
 		UV:                   r[10].(float64),
 		SolarRadiation:       r[11].(float64),
 		RainPrevMin:          r[12].(float64),
-		PrecipType:           r[13].(int64),
+		PrecipType:           r[13].(float64),
 		LightningAvgDistance: r[14].(float64),
-		LightningCount:       r[15].(int64),
+		LightningCount:       r[15].(float64),
 		Battery:              r[16].(float64),
-		ReportInterval:       r[17].(int64),
+		ReportInterval:       r[17].(float64),
 	}, nil
 }
 
