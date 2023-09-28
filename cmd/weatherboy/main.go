@@ -1,149 +1,82 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"os"
-	"text/template"
+
+	tea "github.com/charmbracelet/bubbletea"
 )
 
-type Message struct {
+type RawUDPEvent struct {
 	Type string `json:"type"`
 }
 
-func ParseRainStartEvent(b []byte) string {
-	return fmt.Sprintf("RainStartEvent %s", string(b))
+type Event interface {
+	String() string
 }
 
-func ParseLightningStrikeEvent(outb []byte) string {
-	return fmt.Sprintf("LightningStrikeEvent %s", string(outb))
+type Dashboard struct {
+	LastObservation *Observation
 }
 
-func ParseRapidWind(outb []byte) string {
-	type RapidWindMsg struct {
-		Observation [3]any `json:"ob"`
+func (d Dashboard) Init() tea.Cmd {
+	return nil
+}
+
+func (d Dashboard) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	// switch t := msg.(type) {
+	// case *Observation:
+	// 	d.LastObservation = t
+	// }
+	return d, nil
+}
+
+func (d Dashboard) View() string {
+	if d.LastObservation == nil {
+		return "no data yet"
 	}
-	r := new(RapidWindMsg)
-	err := json.Unmarshal(outb, &r)
-	if err != nil {
-		return fmt.Sprintf("error unmarshaling rapid wind message: %s", err)
-	}
-	return fmt.Sprintf("Wind: Timestamp %d, %.01f m/s, %.01f deg",
-		int(r.Observation[0].(float64)),
-		r.Observation[1],
-		r.Observation[2])
-}
 
-func ParseObservationAir(outb []byte) string {
-	return fmt.Sprintf("ObservationAir %s", string(outb))
-}
-
-func ParseObservationSky(outb []byte) string {
-	return fmt.Sprintf("ObservationSky %s", string(outb))
-}
-
-type RapidWind struct {
-	Time int64
-}
-
-type Observation struct {
-	Time                 float64
-	WindLull             float64
-	WindAvg              float64
-	WindGust             float64
-	WindDirection        float64
-	WindSampleInterval   float64
-	StationPressure      float64
-	AirTemperature       float64
-	RelativeHumidity     float64
-	Illuminance          float64
-	UV                   float64
-	SolarRadiation       float64
-	RainPrevMin          float64
-	PrecipType           float64
-	LightningAvgDistance float64
-	LightningCount       float64
-	Battery              float64
-	ReportInterval       float64
-}
-
-func ParseObservation(outb []byte) (*Observation, error) {
-	type Obs struct {
-		Observation [][18]any `json:"obs"`
-	}
-	o := new(Obs)
-	err := json.Unmarshal(outb, &o)
-	if err != nil {
-		return nil, fmt.Errorf("ERROR %w", err)
-	}
-	r := o.Observation[0]
-	return &Observation{
-		Time:                 r[0].(float64),
-		WindLull:             r[1].(float64),
-		WindAvg:              r[2].(float64),
-		WindGust:             r[3].(float64),
-		WindDirection:        r[4].(float64),
-		WindSampleInterval:   r[5].(float64),
-		StationPressure:      r[6].(float64),
-		AirTemperature:       r[7].(float64),
-		RelativeHumidity:     r[8].(float64),
-		Illuminance:          r[9].(float64),
-		UV:                   r[10].(float64),
-		SolarRadiation:       r[11].(float64),
-		RainPrevMin:          r[12].(float64),
-		PrecipType:           r[13].(float64),
-		LightningAvgDistance: r[14].(float64),
-		LightningCount:       r[15].(float64),
-		Battery:              r[16].(float64),
-		ReportInterval:       r[17].(float64),
-	}, nil
-}
-
-func (o *Observation) String() string {
-	const observation = `
-Time Epoch {{ .Time }}s
-Wind Lull {{.WindLull}} m/s
-Wind Avg {{ .WindAvg }} m/s
-Wind Gust {{ .WindGust }} m/s
-Wind Direction	{{ .WindDirection }} Degrees
-Wind Sample Interval {{ .WindSampleInterval }}s
-Station Pressure {{ .StationPressure }}
-Air Temperature	{{ .AirTemperature }} C
-Relative Humidity	{{ .RelativeHumidity }}%
-Illuminance	{{ .Illuminance }} Lux
-UV	Index {{ .UV }}
-Solar Radiation	{{ .SolarRadiation }} W/m^2
-Rain amount over previous minute {{ .RainPrevMin }}mm
-Precipitation Type {{.PrecipType}}	0 = none, 1 = rain, 2 = hail, 3 = rain + hail (experimental)
-Lightning Strike Avg Distance	{{ .LightningAvgDistance }}km
-Lightning Strike Count	{{ .LightningCount }}
-Battery	Volts {{ .Battery }}V
-Report Interval	{{ .ReportInterval }} Minutes
-`
-
-	t := template.Must(template.New("observation").Parse(observation))
-	b := new(bytes.Buffer)
-	err := t.Execute(b, o)
-	if err != nil {
-		return fmt.Sprintf("ERROR (output) %s", err)
-	}
-	return b.String()
-}
-
-func ParseDeviceStatus(outb []byte) string {
-	return fmt.Sprintf("DeviceStatus")
-}
-
-func ParseHubStatus(outb []byte) string {
-	return fmt.Sprintf("HubStatus")
+	return d.LastObservation.String()
 }
 
 func main() {
+	dash := &Dashboard{}
+
+	p := tea.NewProgram(dash)
+	go collector(p)
+	if _, err := p.Run(); err != nil {
+		fmt.Printf("fatal gui error: %v", err)
+		os.Exit(1)
+	}
+}
+
+func collector(p *tea.Program) {
+	if _, err := os.Stat("/tmp/weatherboy.log"); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			os.Create("/tmp/weatherboy.log")
+		}
+	}
+
+	logfile, err := os.OpenFile("/tmp/weatherboy.log", os.O_RDWR, 0666)
+	if err != nil {
+		fmt.Printf("opening logfile: %s", err)
+	}
+	defer logfile.Close()
+
+	log := func(msg string) {
+		_, err := fmt.Fprintf(logfile, "%s\n", msg)
+		if err != nil {
+			fmt.Printf("ERROR %s", err)
+			os.Exit(1)
+		}
+	}
+
 	ln, err := net.ListenUDP("udp", &net.UDPAddr{Port: 50222})
 	if err != nil {
-		fmt.Printf("opening socket: %s", err)
+		log(fmt.Sprintf("opening socket: %s", err))
 		os.Exit(1)
 	}
 
@@ -151,40 +84,46 @@ func main() {
 		outb := make([]byte, 1024)
 		n, err := ln.Read(outb)
 		if err != nil {
-			fmt.Printf("accepting cxn: %s", err)
+			log(fmt.Sprintf("accepting cxn: %s", err))
 			continue
 		}
 		outb = outb[:n]
 
-		encodedMessageType := new(Message)
+		encodedMessageType := new(RawUDPEvent)
 		err = json.Unmarshal(outb, &encodedMessageType)
 		if err != nil {
-			fmt.Printf("failed unmarshal: %s", err)
+			log(fmt.Sprintf("failed unmarshal: %s", err))
 			continue
 		}
-		var outs string
+		var ev Event
 		switch messageType := encodedMessageType.Type; messageType {
 		case "evt_precip":
-			outs = ParseRainStartEvent(outb)
+			ev, err = HandleRainStartEvent(outb)
 		case "evt_strike":
-			outs = ParseLightningStrikeEvent(outb)
+			ev, err = HandleLightningStrikeEvent(outb)
 		case "rapid_wind":
-			outs = ParseRapidWind(outb)
+			ev, err = HandleRapidWindEvent(outb)
 		case "obs_st":
-			o, err := ParseObservation(outb)
+			o, err := HandleObservation(outb)
 			if err != nil {
-				fmt.Printf("error parsing observation: %s", err)
+				log(fmt.Sprintf("ERROR: %s\n", err))
 				continue
 			}
-			outs = o.String()
+			p.Send(o)
+			ev = o
 		case "device_status":
-			outs = ParseDeviceStatus(outb)
+			ev, err = HandleDeviceStatusEvent(outb)
 		case "hub_status":
-			outs = ParseHubStatus(outb)
+			ev, err = HandleHubStatusEvent(outb)
 		default:
-			fmt.Printf("UNKNOWN MESSAGE TYPE %s", string(outb))
+			log(fmt.Sprintf("UNKNOWN MESSAGE TYPE %s", string(outb)))
 		}
 
-		fmt.Println(outs)
+		if err != nil {
+			log(fmt.Sprintf("ERROR: %s\n", err))
+			continue
+		}
+
+		log(ev.String())
 	}
 }
