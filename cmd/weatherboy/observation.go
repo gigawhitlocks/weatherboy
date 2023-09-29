@@ -83,22 +83,22 @@ func HandleObservation(inb []byte) (*Observation, error) {
 
 func (o *Observation) String() string {
 	const observation = `{{ .Time }}
-Wind Lull {{.WindLull | printf "%.01f" }} mph
-Wind Avg {{ .WindAvg | printf "%.01f" }} mph
-Wind Gust {{ .WindGust | printf "%.01f" }} mph
-Wind Direction	{{ .WindDirection }} Degrees
-Wind Sample Interval {{ .WindSampleInterval }} s
-Pressure {{ .StationPressure }} mb
-Air Temperature	{{ .AirTemperature | printf "%.1f" }} F
-Relative Humidity	{{ .RelativeHumidity }}%
-Illuminance	{{ .Illuminance }} Lux
-UV	Index {{ .UV }}
-Solar Radiation	{{ .SolarRadiation }} W/m^2
+Wind Lull                        {{.WindLull | printf "%.01f" }} mph
+Wind Avg                         {{ .WindAvg | printf "%.01f" }} mph
+Wind Gust                        {{ .WindGust | printf "%.01f" }} mph
+Wind Direction                   {{ .WindDirection }} Degrees
+Wind Sample Interval             {{ .WindSampleInterval }} s
+Pressure                         {{ .StationPressure }} mb
+Air Temperature                  {{ .AirTemperature | printf "%.1f" }} F
+Relative Humidity                {{ .RelativeHumidity }}%
+Illuminance                      {{ .Illuminance }} Lux
+UV Index                         {{ .UV }}
+Solar Radiation                  {{ .SolarRadiation }} W/m^2
 Rain amount over previous minute {{ .RainPrevMin }}mm
-Precipitation Type {{ .PrecipType }}
-Lightning Strike Avg Distance	{{ .LightningAvgDistance }} km
-Lightning Strike Count	{{ .LightningCount }}
-Battery	Volts {{ .Battery }}V
+Precipitation Type               {{ .PrecipType }}
+Lightning Strike Avg Distance    {{ .LightningAvgDistance }} km
+Lightning Strike Count           {{ .LightningCount }}
+Battery	Volts                    {{ .Battery }}V
 `
 
 	t := template.Must(template.New("observation").Parse(observation))
