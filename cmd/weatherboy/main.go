@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 
+	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -21,12 +22,13 @@ type Event interface {
 type Dashboard struct {
 	LastObservation Observation
 	updates         chan Observation
+	spinner         spinner.Model
 }
 
 func (d Dashboard) Init() tea.Cmd {
-	return func() tea.Msg {
+	return tea.Batch(func() tea.Msg {
 		return <-d.updates
-	}
+	}, d.spinner.Tick)
 }
 
 func (d Dashboard) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -41,17 +43,30 @@ func (d Dashboard) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+c", "q":
 			return d, tea.Quit
 		}
+	default:
+		var cmd tea.Cmd
+		d.spinner, cmd = d.spinner.Update(msg)
+		return d, cmd
 	}
 	return d, nil
 }
 
 func (d Dashboard) View() string {
+	if d.LastObservation.ReportInterval == 0 {
+		return d.spinner.View()
+	}
 	return d.LastObservation.String()
 }
 
 func main() {
+	if _, err := os.Stat("/tmp/weatherboy.log"); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			os.Create("/tmp/weatherboy.log")
+		}
+	}
+
 	updates := make(chan Observation)
-	dash := &Dashboard{updates: updates}
+	dash := &Dashboard{updates: updates, spinner: spinner.New()}
 	go collector(updates)
 	p := tea.NewProgram(dash)
 	if _, err := p.Run(); err != nil {
@@ -61,12 +76,6 @@ func main() {
 }
 
 func collector(updates chan Observation) {
-	if _, err := os.Stat("/tmp/weatherboy.log"); err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			os.Create("/tmp/weatherboy.log")
-		}
-	}
-
 	logfile, err := os.OpenFile("/tmp/weatherboy.log", os.O_RDWR|os.O_APPEND, 0666)
 	if err != nil {
 		fmt.Printf("opening logfile: %s", err)
