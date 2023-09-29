@@ -22,7 +22,7 @@ type Observation struct {
 	UV                   float64
 	SolarRadiation       float64
 	RainPrevMin          float64
-	PrecipType           float64
+	PrecipType           string
 	LightningAvgDistance float64
 	LightningCount       int64
 	Battery              float64
@@ -40,21 +40,40 @@ func HandleObservation(inb []byte) (*Observation, error) {
 	}
 	r := o.Observation[0]
 	timestamp := time.Unix(int64(r[0].(float64)), 0)
+	windLullMPH := r[1].(float64) * 2.23693629
+	windAvgMPH := r[2].(float64) * 2.23693629
+	windGustMPH := r[3].(float64) * 2.23693629
+	tempF := (r[7].(float64) * 9.0 / 5.0) + 32
+
+	precipType := func(t int) string {
+		switch t {
+		case 0:
+			return "None"
+		case 1:
+			return "Rain"
+		case 2:
+			return "Hail"
+		case 3:
+			return "Hail and Rain"
+		}
+		return fmt.Sprintf("Unknown precipitation type (%d)", t)
+	}(int(r[13].(float64)))
+
 	return &Observation{
 		Time:                 timestamp,
-		WindLull:             r[1].(float64),
-		WindAvg:              r[2].(float64),
-		WindGust:             r[3].(float64),
+		WindLull:             windLullMPH,
+		WindAvg:              windAvgMPH,
+		WindGust:             windGustMPH,
 		WindDirection:        int64(r[4].(float64)),
 		WindSampleInterval:   int64(r[5].(float64)),
 		StationPressure:      r[6].(float64),
-		AirTemperature:       r[7].(float64),
+		AirTemperature:       tempF,
 		RelativeHumidity:     r[8].(float64),
 		Illuminance:          r[9].(float64),
 		UV:                   r[10].(float64),
 		SolarRadiation:       r[11].(float64),
 		RainPrevMin:          r[12].(float64),
-		PrecipType:           r[13].(float64),
+		PrecipType:           precipType,
 		LightningAvgDistance: r[14].(float64),
 		LightningCount:       int64(r[15].(float64)),
 		Battery:              r[16].(float64),
@@ -63,25 +82,23 @@ func HandleObservation(inb []byte) (*Observation, error) {
 }
 
 func (o *Observation) String() string {
-	const observation = `
-Time Epoch {{ .Time }}s
-Wind Lull {{.WindLull}} m/s
-Wind Avg {{ .WindAvg }} m/s
-Wind Gust {{ .WindGust }} m/s
+	const observation = `{{ .Time }}
+Wind Lull {{.WindLull | printf "%.01f" }} mph
+Wind Avg {{ .WindAvg | printf "%.01f" }} mph
+Wind Gust {{ .WindGust | printf "%.01f" }} mph
 Wind Direction	{{ .WindDirection }} Degrees
-Wind Sample Interval {{ .WindSampleInterval }}s
-Station Pressure {{ .StationPressure }}
-Air Temperature	{{ .AirTemperature }} C
+Wind Sample Interval {{ .WindSampleInterval }} s
+Pressure {{ .StationPressure }} mb
+Air Temperature	{{ .AirTemperature | printf "%.1f" }} F
 Relative Humidity	{{ .RelativeHumidity }}%
 Illuminance	{{ .Illuminance }} Lux
 UV	Index {{ .UV }}
 Solar Radiation	{{ .SolarRadiation }} W/m^2
 Rain amount over previous minute {{ .RainPrevMin }}mm
-Precipitation Type {{.PrecipType}}	0 = none, 1 = rain, 2 = hail, 3 = rain + hail (experimental)
-Lightning Strike Avg Distance	{{ .LightningAvgDistance }}km
+Precipitation Type {{ .PrecipType }}
+Lightning Strike Avg Distance	{{ .LightningAvgDistance }} km
 Lightning Strike Count	{{ .LightningCount }}
 Battery	Volts {{ .Battery }}V
-Report Interval	{{ .ReportInterval }} Minutes
 `
 
 	t := template.Must(template.New("observation").Parse(observation))

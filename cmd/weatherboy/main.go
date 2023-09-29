@@ -19,48 +19,55 @@ type Event interface {
 }
 
 type Dashboard struct {
-	LastObservation *Observation
+	LastObservation Observation
+	updates         chan Observation
 }
 
 func (d Dashboard) Init() tea.Cmd {
-	return nil
+	return func() tea.Msg {
+		return <-d.updates
+	}
 }
 
 func (d Dashboard) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	// switch t := msg.(type) {
-	// case *Observation:
-	// 	d.LastObservation = t
-	// }
+	switch t := msg.(type) {
+	case Observation:
+		d.LastObservation = t
+		return d, func() tea.Msg {
+			return <-d.updates
+		}
+	case tea.KeyMsg:
+		switch t.String() {
+		case "ctrl+c", "q":
+			return d, tea.Quit
+		}
+	}
 	return d, nil
 }
 
 func (d Dashboard) View() string {
-	if d.LastObservation == nil {
-		return "no data yet"
-	}
-
 	return d.LastObservation.String()
 }
 
 func main() {
-	dash := &Dashboard{}
-
+	updates := make(chan Observation)
+	dash := &Dashboard{updates: updates}
+	go collector(updates)
 	p := tea.NewProgram(dash)
-	go collector(p)
 	if _, err := p.Run(); err != nil {
 		fmt.Printf("fatal gui error: %v", err)
 		os.Exit(1)
 	}
 }
 
-func collector(p *tea.Program) {
+func collector(updates chan Observation) {
 	if _, err := os.Stat("/tmp/weatherboy.log"); err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			os.Create("/tmp/weatherboy.log")
 		}
 	}
 
-	logfile, err := os.OpenFile("/tmp/weatherboy.log", os.O_RDWR, 0666)
+	logfile, err := os.OpenFile("/tmp/weatherboy.log", os.O_RDWR|os.O_APPEND, 0666)
 	if err != nil {
 		fmt.Printf("opening logfile: %s", err)
 	}
@@ -109,7 +116,7 @@ func collector(p *tea.Program) {
 				log(fmt.Sprintf("ERROR: %s\n", err))
 				continue
 			}
-			p.Send(o)
+			updates <- *o
 			ev = o
 		case "device_status":
 			ev, err = HandleDeviceStatusEvent(outb)
