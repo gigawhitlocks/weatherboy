@@ -26,9 +26,11 @@ type Dashboard struct {
 }
 
 func (d Dashboard) Init() tea.Cmd {
-	return tea.Batch(func() tea.Msg {
-		return <-d.updates
-	}, d.spinner.Tick)
+	return tea.Batch(
+		func() tea.Msg {
+			return <-d.updates
+		},
+		d.spinner.Tick)
 }
 
 func (d Dashboard) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
