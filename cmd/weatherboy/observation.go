@@ -13,7 +13,7 @@ type Observation struct {
 	WindLull             float64
 	WindAvg              float64
 	WindGust             float64
-	WindDirection        int64
+	WindDirection        string
 	WindSampleInterval   int64
 	StationPressure      float64
 	AirTemperature       float64
@@ -29,6 +29,19 @@ type Observation struct {
 	ReportInterval       int64
 }
 
+const (
+	north     = 0
+	northeast = iota
+	east
+	southeast
+	south
+	southwest
+	west
+	northwest
+)
+
+var windDirections [8]string = [8]string{"🡸"," 🡺","🡹 ","🡻" ,"🡼", "🡽"," 🡾","🡿 "}
+
 func HandleObservation(inb []byte) (*Observation, error) {
 	type Obs struct {
 		Observation [][18]any `json:"obs"`
@@ -43,6 +56,30 @@ func HandleObservation(inb []byte) (*Observation, error) {
 	windLullMPH := r[1].(float64) * 2.23693629
 	windAvgMPH := r[2].(float64) * 2.23693629
 	windGustMPH := r[3].(float64) * 2.23693629
+	windDirection := func(w int64) string {
+		// this could be math probably but then I would have to think
+		// about it harde
+		switch {
+		case w < 23:
+			return windDirections[north]
+		case w >= 23 && w < 67:
+			return windDirections[northeast]
+		case w >= 67 && w < 112:
+			return windDirections[east]
+		case w >= 112 && w < 157:
+			return windDirections[southeast]
+		case w >= 157 && w < 202:
+			return windDirections[south]
+		case w >= 202 && w < 247:
+			return windDirections[southwest]
+		case w >= 247 && w < 292:
+			return windDirections[west]
+		case w >= 292 && w < 337:
+			return windDirections[northwest]
+		default:
+			return windDirections[north]
+		}
+	}(int64(r[4].(float64)))
 	tempF := (r[7].(float64) * 9.0 / 5.0) + 32
 
 	precipType := func(t int) string {
@@ -64,7 +101,7 @@ func HandleObservation(inb []byte) (*Observation, error) {
 		WindLull:             windLullMPH,
 		WindAvg:              windAvgMPH,
 		WindGust:             windGustMPH,
-		WindDirection:        int64(r[4].(float64)),
+		WindDirection:        windDirection,
 		WindSampleInterval:   int64(r[5].(float64)),
 		StationPressure:      r[6].(float64),
 		AirTemperature:       tempF,
@@ -86,7 +123,7 @@ func (o *Observation) String() string {
 Wind Lull                        {{.WindLull | printf "%.01f" }} mph
 Wind Avg                         {{ .WindAvg | printf "%.01f" }} mph
 Wind Gust                        {{ .WindGust | printf "%.01f" }} mph
-Wind Direction                   {{ .WindDirection }} Degrees
+Wind Direction                   {{ .WindDirection }}
 Wind Sample Interval             {{ .WindSampleInterval }} s
 Pressure                         {{ .StationPressure }} mb
 Air Temperature                  {{ .AirTemperature | printf "%.1f" }} F
