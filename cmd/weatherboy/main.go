@@ -3,13 +3,26 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"flag"
 	"fmt"
+	"log"
 	"net"
+	"net/http"
 	"os"
+	"time"
 
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/gorilla/mux"
 )
+
+var daemonMode bool
+var dir string
+
+func init() {
+	flag.BoolVar(&daemonMode, "daemon", false, "run as a daemon")
+	flag.StringVar(&dir, "dir", ".", "webroot with static files")
+}
 
 type RawUDPEvent struct {
 	Type string `json:"type"`
@@ -60,7 +73,10 @@ func (d Dashboard) View() string {
 	return d.LastObservation.String()
 }
 
+var latest Observation
+
 func main() {
+	flag.Parse()
 	if _, err := os.Stat("/tmp/weatherboy.log"); err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			os.Create("/tmp/weatherboy.log")
@@ -70,15 +86,56 @@ func main() {
 	updates := make(chan Observation)
 	dash := &Dashboard{updates: updates, spinner: spinner.New()}
 	go collector(updates)
-	p := tea.NewProgram(dash)
-	if _, err := p.Run(); err != nil {
-		fmt.Printf("fatal gui error: %v", err)
-		os.Exit(1)
+	if !daemonMode {
+		p := tea.NewProgram(dash)
+		if _, err := p.Run(); err != nil {
+			fmt.Printf("fatal gui error: %v", err)
+			os.Exit(1)
+		}
+
+		os.Exit(0)
 	}
+
+	router := mux.NewRouter()
+	router.HandleFunc("/", dashHandler)
+	go func(updates chan Observation) {
+		for {
+			select {
+			case latest = <-updates:
+			}
+		}
+	}(updates)
+
+	srv := &http.Server{
+		Handler: router,
+		Addr:    "127.0.0.1:8000",
+		// Good practice: enforce timeouts for servers you create!
+		WriteTimeout: 15 * time.Second,
+		ReadTimeout:  15 * time.Second,
+	}
+
+	log.Fatal(srv.ListenAndServe())
+
+}
+
+func dashHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(
+		fmt.Sprintf(`
+<html><head>
+<script src="https://unpkg.com/htmx.org@1.9.6" integrity="sha384-FhXw7b6AlE/jyjlZH5iHa/tTe9EpJ1Y55RjcgPbjeWMskSxZt1v9qkxLJWNJaGni" crossorigin="anonymous"></script>
+<title>It's a Weather Site</title></head><body>
+<div hx-get="/" hx-trigger="every 3s">
+<pre><tt>
+%s
+</tt></pre>
+</div></body></html>`, latest.String()),
+	),
+	)
 }
 
 func collector(updates chan Observation) {
-	logfile, err := os.OpenFile("/tmp/weatherboy.log", os.O_RDWR|os.O_APPEND, 0666)
+	logfile, err := os.OpenFile("/tmp/weatherboy.log", os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
 	if err != nil {
 		fmt.Printf("opening logfile: %s", err)
 	}
