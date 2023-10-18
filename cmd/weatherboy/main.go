@@ -104,10 +104,12 @@ func main() {
 
 	router := mux.NewRouter()
 	router.HandleFunc("/htmx.min.js", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Content-Type", "text/javascript")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(htmx))
 	})
 	router.HandleFunc("/styles.css", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Content-Type", "text/css")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(styles))
 	})
