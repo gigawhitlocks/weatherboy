@@ -24,6 +24,8 @@ var styles string
 //go:embed htmx.min.js
 var htmx string
 
+var latest *Observation
+
 var daemonMode bool
 
 func init() {
@@ -79,8 +81,6 @@ func (d Dashboard) View() string {
 	return d.LastObservation.String()
 }
 
-var latest Observation
-
 func main() {
 	flag.Parse()
 	if _, err := os.Stat("/tmp/weatherboy.log"); err != nil {
@@ -119,7 +119,8 @@ func main() {
 	go func(updates chan Observation) {
 		for {
 			select {
-			case latest = <-updates:
+			case l := <-updates:
+				latest = &l
 			}
 		}
 	}(updates)
@@ -145,9 +146,7 @@ func dashHandler(w http.ResponseWriter, r *http.Request) {
     <link href="/styles.css" rel="stylesheet" />
     <title>Latest Weather Observation</title></head>
   <body>
-      <div hx-get="/update" hx-trigger="every 3s" id="observation" class="observation">
 %s
-      </div>
   </body>
 </html>`, latest.HTML())))
 }

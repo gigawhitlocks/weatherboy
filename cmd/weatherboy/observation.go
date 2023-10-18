@@ -87,7 +87,17 @@ func HandleObservation(inb []byte) (*Observation, error) {
 	}, nil
 }
 
-func (o Observation) HTML() string {
+func (o *Observation) HTML() string {
+	if o == nil {
+		return fmt.Sprintf(`<p style="color: %s" id="loading" class="loading" hx-swap="outerHTML" hx-trigger="every 1s" hx-get="/update">No observation has yet been recorded.</p>`,
+			func() string {
+				if time.Now().Unix()%2 == 0 {
+					return "grey"
+				}
+				return "black"
+			}())
+	}
+
 	if o.html == "" {
 		t := template.Must(template.New("observation").Parse(observationHTMLTemplate))
 		b := new(bytes.Buffer)

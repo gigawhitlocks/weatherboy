@@ -1,3 +1,21 @@
+#observation {
+    opacity: 1;
+    transition: opacity .5s ease-out;
+}
+
+#observation.htmx-added {
+    opacity: 0;
+}
+
+#observation.htmx-swapping {
+  opacity: 0;
+    transition: opacity .5s ease-out;
+}
+
+.loading {
+      transition: all .5s ease-in;
+}
+
 .observation table tr td:nth-child(2) {
     font-family: monospace;
     padding-left: 1.5em;
