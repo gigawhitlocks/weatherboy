@@ -125,9 +125,8 @@ func main() {
 	}(updates)
 
 	srv := &http.Server{
-		Handler: router,
-		Addr:    "127.0.0.1:8000",
-		// Good practice: enforce timeouts for servers you create!
+		Handler:      router,
+		Addr:         "127.0.0.1:8000",
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,
 	}
@@ -137,6 +136,7 @@ func main() {
 }
 
 func dashHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Add("Content-Type", "text/html")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(fmt.Sprintf(`<!DOCTYPE html>
 <html>
@@ -153,6 +153,7 @@ func dashHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func dashUpdateHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Add("Content-Type", "text/html")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(latest.HTML()))
 }
