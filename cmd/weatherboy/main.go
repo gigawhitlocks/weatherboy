@@ -1,6 +1,7 @@
 package main
 
 import (
+	_ "embed"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -12,9 +13,16 @@ import (
 	"time"
 
 	"github.com/charmbracelet/bubbles/spinner"
+
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/gorilla/mux"
 )
+
+//go:embed styles.css
+var styles string
+
+//go:embed htmx.min.js
+var htmx string
 
 var daemonMode bool
 
@@ -95,7 +103,17 @@ func main() {
 	}
 
 	router := mux.NewRouter()
+	router.HandleFunc("/htmx.min.js", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(htmx))
+	})
+	router.HandleFunc("/styles.css", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(styles))
+	})
+	router.HandleFunc("/update", dashUpdateHandler)
 	router.HandleFunc("/", dashHandler)
+
 	go func(updates chan Observation) {
 		for {
 			select {
@@ -118,18 +136,23 @@ func main() {
 
 func dashHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(
-		fmt.Sprintf(`
-<html><head>
-<script src="https://unpkg.com/htmx.org@1.9.6" integrity="sha384-FhXw7b6AlE/jyjlZH5iHa/tTe9EpJ1Y55RjcgPbjeWMskSxZt1v9qkxLJWNJaGni" crossorigin="anonymous"></script>
-<title>Latest Weather Observation</title></head>
-<body>
-<div hx-get="/" hx-trigger="every 3s">
+	w.Write([]byte(fmt.Sprintf(`<!DOCTYPE html>
+<html>
+  <head>
+    <script src="/htmx.min.js"></script>
+    <link href="/styles.css" rel="stylesheet" />
+    <title>Latest Weather Observation</title></head>
+  <body>
+      <div hx-get="/update" hx-trigger="every 3s" id="observation" class="observation">
 %s
-</div>
-</body></html>`, latest.HTML()),
-	),
-	)
+      </div>
+  </body>
+</html>`, latest.HTML())))
+}
+
+func dashUpdateHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(latest.HTML()))
 }
 
 func collector(updates chan Observation) {

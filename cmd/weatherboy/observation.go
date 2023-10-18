@@ -31,6 +31,8 @@ type Observation struct {
 	LightningCount       int64
 	Battery              float64
 	ReportInterval       int64
+
+	html string
 }
 
 func HandleObservation(inb []byte) (*Observation, error) {
@@ -85,14 +87,19 @@ func HandleObservation(inb []byte) (*Observation, error) {
 	}, nil
 }
 
-func (o *Observation) HTML() string {
-	t := template.Must(template.New("observation").Parse(observationHTMLTemplate))
-	b := new(bytes.Buffer)
-	err := t.Execute(b, o)
-	if err != nil {
-		return fmt.Sprintf("ERROR (output) %s", err)
+func (o Observation) HTML() string {
+	if o.html == "" {
+		t := template.Must(template.New("observation").Parse(observationHTMLTemplate))
+		b := new(bytes.Buffer)
+		err := t.Execute(b, o)
+		if err != nil {
+			return fmt.Sprintf("ERROR (output) %s", err)
+		}
+
+		o.html = b.String()
 	}
-	return b.String()
+
+	return o.html
 }
 
 func (o *Observation) String() string {
