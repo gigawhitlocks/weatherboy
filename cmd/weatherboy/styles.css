@@ -1,14 +1,17 @@
-.observation table tr td:nth-child(2) { 
+.observation table tr td:nth-child(2) {
     font-family: monospace;
+
 }
-.observation {
-    width: 100%;
+
+#observation table {
+    display: flex;
     align-items: center;
-    display: flexbox;
+    justify-content: center;
 }
-table {
-    display: block;
-}
-h3 {
-    display: block;
+
+body {
+    width: 100%;  
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
