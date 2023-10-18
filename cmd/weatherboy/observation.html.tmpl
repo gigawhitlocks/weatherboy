@@ -1,0 +1,21 @@
+<div id="observation" class="observation">
+  <h3>Observation Recorded at {{ .Time }}</h3>
+  <table>
+    <tr><td>Wind Lull</td><td>{{.WindLull | printf "%.01f" }} mph</td></tr>
+    <tr><td>Wind Avg</td><td>{{ .WindAvg | printf "%.01f" }} mph</td></tr>
+    <tr><td>Wind Gust</td><td>{{ .WindGust | printf "%.01f" }} mph</td></tr>
+    <tr><td>Wind Direction</td><td>{{ .WindDirection }} Degrees</td></tr>
+    <tr><td>Wind Sample Interval</td><td>{{ .WindSampleInterval }} s</td></tr>
+    <tr><td>Pressure</td><td>{{ .StationPressure }} mb</td></tr>
+    <tr><td>Air Temperature</td><td>{{ .AirTemperature | printf "%.1f" }} F</td></tr>
+    <tr><td>Relative Humidity</td><td>{{ .RelativeHumidity }}%</td></tr>
+    <tr><td>Illuminance</td><td>{{ .Illuminance }} Lux</td></tr>
+    <tr><td>UV Index</td><td>{{ .UV }}</td></tr>
+    <tr><td>Solar Radiation</td><td>{{ .SolarRadiation }} W/m^2</td></tr>
+    <tr><td>Rain amount over previous minute</td><td>{{ .RainPrevMin }}mm</td></tr>
+    <tr><td>Precipitation Type</td><td>{{ .PrecipType }}</td></tr>
+    <tr><td>Lightning Strike Avg Distance</td><td>{{ .LightningAvgDistance }} km</td></tr>
+    <tr><td>Lightning Strike Count</td><td>{{ .LightningCount }}</td></tr>
+    <tr><td>Battery	Volts</td><td>{{ .Battery }}V</td></tr>
+  </table>
+</div>

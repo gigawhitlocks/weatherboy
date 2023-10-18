@@ -17,11 +17,9 @@ import (
 )
 
 var daemonMode bool
-var dir string
 
 func init() {
 	flag.BoolVar(&daemonMode, "daemon", false, "run as a daemon")
-	flag.StringVar(&dir, "dir", ".", "webroot with static files")
 }
 
 type RawUDPEvent struct {
@@ -124,12 +122,12 @@ func dashHandler(w http.ResponseWriter, r *http.Request) {
 		fmt.Sprintf(`
 <html><head>
 <script src="https://unpkg.com/htmx.org@1.9.6" integrity="sha384-FhXw7b6AlE/jyjlZH5iHa/tTe9EpJ1Y55RjcgPbjeWMskSxZt1v9qkxLJWNJaGni" crossorigin="anonymous"></script>
-<title>It's a Weather Site</title></head><body>
+<title>Latest Weather Observation</title></head>
+<body>
 <div hx-get="/" hx-trigger="every 3s">
-<pre><tt>
 %s
-</tt></pre>
-</div></body></html>`, latest.String()),
+</div>
+</body></html>`, latest.HTML()),
 	),
 	)
 }

@@ -2,11 +2,15 @@ package main
 
 import (
 	"bytes"
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"text/template"
 	"time"
 )
+
+//go:embed observation.html.tmpl
+var observationHTMLTemplate string
 
 type Observation struct {
 	Time                 time.Time
@@ -79,6 +83,16 @@ func HandleObservation(inb []byte) (*Observation, error) {
 		Battery:              r[16].(float64),
 		ReportInterval:       int64(r[17].(float64)),
 	}, nil
+}
+
+func (o *Observation) HTML() string {
+	t := template.Must(template.New("observation").Parse(observationHTMLTemplate))
+	b := new(bytes.Buffer)
+	err := t.Execute(b, o)
+	if err != nil {
+		return fmt.Sprintf("ERROR (output) %s", err)
+	}
+	return b.String()
 }
 
 func (o *Observation) String() string {
