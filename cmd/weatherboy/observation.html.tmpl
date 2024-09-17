@@ -1,24 +1,76 @@
-<div hx-get="/update"
-     hx-trigger="every 1m"
-     hx-swap="outerHTML swap:1s settle:1s"
-     id="observation" class="observation">
-  <h3>Observation Recorded at {{ .Time.Format "3:04 PM" }}</h3>
-  <table>
-    <tr><td>Wind Lull</td><td>{{.WindLull | printf "%.01f" }} mph</td></tr>
-    <tr><td>Wind Avg</td><td>{{ .WindAvg | printf "%.01f" }} mph</td></tr>
-    <tr><td>Wind Gust</td><td>{{ .WindGust | printf "%.01f" }} mph</td></tr>
-    <tr><td>Wind Direction</td><td>{{ .WindDirection }} Degrees</td></tr>
-    <tr><td>Wind Sample Interval</td><td>{{ .WindSampleInterval }} s</td></tr>
-    <tr><td>Pressure</td><td>{{ .StationPressure }} mb</td></tr>
-    <tr><td>Air Temperature</td><td>{{ .AirTemperature | printf "%.1f" }} F</td></tr>
-    <tr><td>Relative Humidity</td><td>{{ .RelativeHumidity }}% </td></tr>
-    <tr><td>Illuminance</td><td>{{ .Illuminance }} Lux</td></tr>
-    <tr><td>UV Index</td><td>{{ .UV }}</td></tr>
-    <tr><td>Solar Radiation</td><td>{{ .SolarRadiation }} W/m^2</td></tr>
-    <tr><td>Rain amount over previous minute</td><td>{{ .RainPrevMin }}mm</td></tr>
-    <tr><td>Precipitation Type</td><td>{{ .PrecipType }}</td></tr>
-    <tr><td>Lightning Strike Avg Distance</td><td>{{ .LightningAvgDistance }} km</td></tr>
-    <tr><td>Lightning Strike Count</td><td>{{ .LightningCount }}</td></tr>
-    <tr><td>Battery Volts</td><td>{{ .Battery }}V</td></tr>
-  </table>
-</div>
+<!DOCTYPE html>
+<html>
+    <head>
+	<script src="/htmx.min.js"></script>
+	<link href="/styles.css" rel="stylesheet" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+	<title>Latest Weather Observation</title>
+	<meta property="og:type" content="website" />
+	<meta property="og:url" content="https://weather.theknown.net" />
+	<meta property="og:title" content="{{ .AirTemperature | printf "%.1f"}} F at home" />
+
+	<meta name="twitter:card"   content="summary" />
+	<meta name="twitter:domain" value="weather.theknown.net" />
+	<meta name="twitter: title" content="{{ .AirTemperature | printf "%.1f"}} F at home" />
+	
+	<meta name="twitter:label1"   value="Wind Lull" />
+	<meta name="twitter:data1"    value="{{.WindLull | printf "%.01f" }} mph" />
+	<meta name="twitter:label2"   value="Wind Avg" />
+	<meta name="twitter:data2"    value="{{ .WindAvg | printf "%.01f" }} mph" />
+	<meta name="twitter:label3"   value="Wind Gust" />
+	<meta name="twitter:data3"    value="{{ .WindGust | printf "%.01f" }} mph" />
+	<meta name="twitter:label4"   value="Wind Direction" />
+	<meta name="twitter:data4"    value="{{ .WindDirection }} Degrees" />
+	<meta name="twitter:label5"   value="Wind Sample Interval" />
+	<meta name="twitter:data5"    value="{{ .WindSampleInterval }} s" />
+	<meta name="twitter:label6"   value="Pressure" />
+	<meta name="twitter:data6"    value="{{ .StationPressure }} mb" />
+	<meta name="twitter:label7"   value="Air Temperature" />
+	<meta name="twitter:data7"    value="{{ .AirTemperature | printf "%.1f" }} F" />
+	<meta name="twitter:label8"   value="Relative Humidity" />
+	<meta name="twitter:data8"    value="{{ .RelativeHumidity }}% " />
+	<meta name="twitter:label9"   value="Illuminance" />
+	<meta name="twitter:data9"    value="{{ .Illuminance }} Lux" />
+	<meta name="twitter:label10"  value="UV Index" />
+	<meta name="twitter:data10"   value="{{ .UV }}" />
+	<meta name="twitter:label11"  value="Solar Radiation" />
+	<meta name="twitter:data11"   value="{{ .SolarRadiation }} W/m^2" />
+	<meta name="twitter:label12"  value="Rain amount over previous minute" />
+	<meta name="twitter:data12"   value="{{ .RainPrevMin }}mm" />
+	<meta name="twitter:label13"  value="Precipitation Type" />
+	<meta name="twitter:data13"   value="{{ .PrecipType }}" />
+	<meta name="twitter:label14"  value="Lightning Strike Avg Distance" />
+	<meta name="twitter:data14"   value="{{ .LightningAvgDistance }} km" />
+	<meta name="twitter:label15"  value="Lightning Strike Count" />
+	<meta name="twitter:data15"   value="{{ .LightningCount }}" />
+	<meta name="twitter:label16"  value="Battery Volts" />
+	<meta name="twitter:data16"   value="{{ .Battery }}V" />
+    </head>
+    <body>
+	<div hx-get="/update"
+	     hx-trigger="every 1m"
+	     hx-swap="outerHTML swap:1s settle:1s"
+	     id="observation" class="observation">
+	    <h3>Observation Recorded at {{ .Time.Format "3:04 PM" }}</h3>
+	    <table>
+		<tr><td>Wind Lull</td><td>{{.WindLull | printf "%.01f" }} mph</td></tr>
+		<tr><td>Wind Avg</td><td>{{ .WindAvg | printf "%.01f" }} mph</td></tr>
+		<tr><td>Wind Gust</td><td>{{ .WindGust | printf "%.01f" }} mph</td></tr>
+		<tr><td>Wind Direction</td><td>{{ .WindDirection }} Degrees</td></tr>
+		<tr><td>Wind Sample Interval</td><td>{{ .WindSampleInterval }} s</td></tr>
+		<tr><td>Pressure</td><td>{{ .StationPressure }} mb</td></tr>
+		<tr><td>Air Temperature</td><td>{{ .AirTemperature | printf "%.1f" }} F</td></tr>
+		<tr><td>Relative Humidity</td><td>{{ .RelativeHumidity }}% </td></tr>
+		<tr><td>Illuminance</td><td>{{ .Illuminance }} Lux</td></tr>
+		<tr><td>UV Index</td><td>{{ .UV }}</td></tr>
+		<tr><td>Solar Radiation</td><td>{{ .SolarRadiation }} W/m^2</td></tr>
+		<tr><td>Rain amount over previous minute</td><td>{{ .RainPrevMin }}mm</td></tr>
+		<tr><td>Precipitation Type</td><td>{{ .PrecipType }}</td></tr>
+		<tr><td>Lightning Strike Avg Distance</td><td>{{ .LightningAvgDistance }} km</td></tr>
+		<tr><td>Lightning Strike Count</td><td>{{ .LightningCount }}</td></tr>
+		<tr><td>Battery Volts</td><td>{{ .Battery }}V</td></tr>
+	    </table>
+	</div>
+    </body>
+</html>

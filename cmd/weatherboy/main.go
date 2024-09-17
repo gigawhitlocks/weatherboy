@@ -139,16 +139,7 @@ func main() {
 func dashHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "text/html")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(fmt.Sprintf(`<!DOCTYPE html>
-<html>
-  <head>
-    <script src="/htmx.min.js"></script>
-    <link href="/styles.css" rel="stylesheet" />
-    <title>Latest Weather Observation</title></head>
-  <body>
-%s
-  </body>
-</html>`, latest.HTML())))
+	w.Write([]byte(latest.HTML()))
 }
 
 func dashUpdateHandler(w http.ResponseWriter, r *http.Request) {
