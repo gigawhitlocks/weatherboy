@@ -3,7 +3,7 @@ wouldn't you like to know, weatherboy
 # Weatherboy
 
 Weatherboy is a little tool to display data from a Weatherflow Tempest device.
-It only uses the locally available UDP API, so it does not need an API key. It just listens on the network, and displays what it sees.
+It only uses the locally available UDP API, so it does not need an API key. It just listens on the network, and displays what it sees. I built it to learn about the Tempest Weatherflow UDP protocol, HTMX, and the BubbleTea framework, and to display weather data at my home.
 
 Run with no arguments, it will show the current observation, once it receives one, and update automatically whenever a new one is received. Run with -daemon it will expose a simple HTMX website to display the data, and also makes it available as JSON. 
 
@@ -55,3 +55,19 @@ Also, it writes events to /tmp/weatherboy.log
 ```
 
 It is rudimentary however it could be used as a good starting point to do something more interesting with this data.
+
+# installation instructions
+
+None, just download and run it in the terminal. 
+```
+chmod +x weatherboy
+./weatherboy
+```
+
+If you have a Weatherflow Tempest on your network, after a little while (sometimes it can take a minute or two) you will see an Observation appear in your terminal. 
+
+Run it with `./weatherboy -daemon` to start a web server at `localhost:8000`. Browse to it in your web browser to see the same data as in your terminal.
+
+# Contributing
+
+contributions unexpected but welcome
