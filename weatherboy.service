@@ -1,0 +1,13 @@
+[Unit]
+Description=Weatherboy
+After=syslog.target network.target
+
+[Service]
+User=ian
+WorkingDirectory=/home/ian/weatherboy
+ExecStart=/home/ian/weatherboy/bin/weatherboy -daemon
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
