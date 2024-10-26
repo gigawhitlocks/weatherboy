@@ -35,6 +35,14 @@ type Observation struct {
 	html string
 }
 
+func (o *Observation) JSON() (string, error) {
+	j, err := json.Marshal(o)
+	if err != nil {
+		return "", err
+	}
+	return string(j), nil
+}
+
 func HandleObservation(inb []byte) (*Observation, error) {
 	type Obs struct {
 		Observation [][18]any `json:"obs"`
@@ -113,6 +121,11 @@ func (o *Observation) HTML() string {
 }
 
 func (o *Observation) String() string {
+	s, _ := o.JSON()
+	return s
+}
+
+func (o *Observation) Display() string {
 	const observation = `{{ .Time }}
 Wind Lull                        {{.WindLull | printf "%.01f" }} mph
 Wind Avg                         {{ .WindAvg | printf "%.01f" }} mph

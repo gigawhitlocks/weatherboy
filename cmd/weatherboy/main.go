@@ -13,9 +13,9 @@ import (
 	"time"
 
 	"github.com/charmbracelet/bubbles/spinner"
+	"github.com/gorilla/mux"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/gorilla/mux"
 )
 
 //go:embed styles.css
@@ -78,7 +78,7 @@ func (d Dashboard) View() string {
 	if d.LastObservation.ReportInterval == 0 {
 		return d.spinner.View()
 	}
-	return d.LastObservation.String()
+	return d.LastObservation.Display()
 }
 
 func main() {
@@ -114,6 +114,8 @@ func main() {
 		w.Write([]byte(styles))
 	})
 	router.HandleFunc("/update", dashUpdateHandler)
+	router.HandleFunc("/json", jsonHandler)
+
 	router.HandleFunc("/", dashHandler)
 
 	go func(updates chan Observation) {
@@ -134,6 +136,13 @@ func main() {
 
 	log.Fatal(srv.ListenAndServe())
 
+}
+
+func jsonHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Add("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	j, _ := latest.JSON()
+	w.Write([]byte(j))
 }
 
 func dashHandler(w http.ResponseWriter, r *http.Request) {
