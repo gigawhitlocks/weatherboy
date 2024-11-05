@@ -89,6 +89,12 @@ func main() {
 		}
 	}
 
+	if _, err := os.Stat("/tmp/weatherboy"); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			os.Create("/tmp/weather")
+		}
+	}
+
 	updates := make(chan Observation)
 	dash := &Dashboard{updates: updates, spinner: spinner.New()}
 	go collector(updates)

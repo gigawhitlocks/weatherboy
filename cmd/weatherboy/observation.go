@@ -5,6 +5,7 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
+	"os"
 	"text/template"
 	"time"
 )
@@ -73,7 +74,12 @@ func HandleObservation(inb []byte) (*Observation, error) {
 		return fmt.Sprintf("Unknown precipitation type (%d)", t)
 	}(int(r[13].(float64)))
 
-	return &Observation{
+	statusFile, err := os.OpenFile("/tmp/weatherboy", os.O_RDWR|os.O_TRUNC|os.O_CREATE, 0666)
+	if err != nil {
+		return nil, err
+	}
+
+	finalObservation := &Observation{
 		Time:                 timestamp,
 		WindLull:             windLullMPH,
 		WindAvg:              windAvgMPH,
@@ -92,7 +98,24 @@ func HandleObservation(inb []byte) (*Observation, error) {
 		LightningCount:       int64(r[15].(float64)),
 		Battery:              r[16].(float64),
 		ReportInterval:       int64(r[17].(float64)),
-	}, nil
+	}
+
+	jsonData, err := json.Marshal(finalObservation)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = statusFile.Write(jsonData)
+	if err != nil {
+		return nil, err
+	}
+
+	err = statusFile.Sync()
+	if err != nil {
+		return nil, err
+	}
+
+	return finalObservation, nil
 }
 
 func (o *Observation) HTML() string {
