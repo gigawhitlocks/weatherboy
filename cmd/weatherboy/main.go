@@ -192,7 +192,7 @@ func collector(updates chan Observation) {
 			continue
 		}
 		outb = outb[:n]
-
+		log(fmt.Sprintf("UDP Message: %s", string(outb)))
 		encodedMessageType := new(RawUDPEvent)
 		err = json.Unmarshal(outb, &encodedMessageType)
 		if err != nil {
