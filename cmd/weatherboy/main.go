@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"runtime"
 	"time"
 
 	"github.com/charmbracelet/bubbles/spinner"
@@ -83,15 +84,17 @@ func (d Dashboard) View() string {
 
 func main() {
 	flag.Parse()
-	if _, err := os.Stat("/tmp/weatherboy.log"); err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			os.Create("/tmp/weatherboy.log")
+	if runtime.GOOS != "android" {
+		if _, err := os.Stat("/tmp/weatherboy.log"); err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				os.Create("/tmp/weatherboy.log")
+			}
 		}
-	}
 
-	if _, err := os.Stat("/tmp/weatherboy"); err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			os.Create("/tmp/weather")
+		if _, err := os.Stat("/tmp/weatherboy"); err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				os.Create("/tmp/weather")
+			}
 		}
 	}
 
@@ -164,18 +167,16 @@ func dashUpdateHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func collector(updates chan Observation) {
-	logfile, err := os.OpenFile("/tmp/weatherboy.log", os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
-	if err != nil {
-		fmt.Printf("opening logfile: %s", err)
+	if runtime.GOOS != "android" {
+		logfile, err := os.OpenFile("/tmp/weatherboy.log", os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
+		if err != nil {
+			fmt.Printf("opening logfile: %s", err)
+		}
+		defer logfile.Close()
 	}
-	defer logfile.Close()
 
 	log := func(msg string) {
-		_, err := fmt.Fprintf(logfile, "%s\n", msg)
-		if err != nil {
-			fmt.Printf("ERROR %s", err)
-			os.Exit(1)
-		}
+		fmt.Printf("%s\n", msg)
 	}
 
 	ln, err := net.ListenUDP("udp", &net.UDPAddr{Port: 50222})
